@@ -67,17 +67,6 @@ func processWPRMIngredient(tokenizer *html.Tokenizer) (string, string, string) {
 	}
 }
 
-func processIngredient(tokenizer *html.Tokenizer) {
-	/*
-		contains:
-		<li class="ingredient" itemprop="ingredients">6 cups chicken stock</li>
-
-		ideas to process:
-		split on strings
-	*/
-
-}
-
 func processHTML(w http.ResponseWriter, resp *http.Response) (*Ingredients, error) {
 	// create a new tokenizer over the response body
 	tokenizer := html.NewTokenizer(resp.Body)
@@ -107,8 +96,8 @@ func processHTML(w http.ResponseWriter, resp *http.Response) (*Ingredients, erro
 								Amount: amount,
 								Unit:   unit,
 							}
-						} else if strings.Contains(attr.Val, "ingredient") {
-							processIngredient(tokenizer)
+						} else {
+							// todo: include other recipe formats.
 						}
 					}
 				}
@@ -119,8 +108,7 @@ func processHTML(w http.ResponseWriter, resp *http.Response) (*Ingredients, erro
 }
 
 func getIngredients(w http.ResponseWriter, url string) (*Ingredients, error) {
-	// look if its in the wprm format..
-	// or "ingredients"
+	// this only works for wprm recipe formats...
 
 	resp, err := http.Get(url)
 	// report an error if there was one
