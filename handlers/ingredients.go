@@ -8,16 +8,9 @@ import (
 	"strings"
 
 	"golang.org/x/net/html"
+
+	"github.com/macros-fetcher/models"
 )
-
-// IngredientDetails represent the amount and unit related to an ingredient in the recipe
-type IngredientDetails struct {
-	Amount string
-	Unit   string
-}
-
-// Ingredients represent to names of ingredients used in the recipe as well as the amount and unit
-type Ingredients map[string]IngredientDetails
 
 func processWPRMIngredient(tokenizer *html.Tokenizer) (string, string, string) {
 	/*
@@ -67,10 +60,10 @@ func processWPRMIngredient(tokenizer *html.Tokenizer) (string, string, string) {
 	}
 }
 
-func processHTML(w http.ResponseWriter, resp *http.Response) (*Ingredients, error) {
+func processHTML(w http.ResponseWriter, resp *http.Response) (*models.Ingredients, error) {
 	// create a new tokenizer over the response body
 	tokenizer := html.NewTokenizer(resp.Body)
-	ingredients := make(Ingredients)
+	ingredients := make(models.Ingredients)
 	for {
 		tokenType := tokenizer.Next()
 		switch tokenType {
@@ -92,7 +85,7 @@ func processHTML(w http.ResponseWriter, resp *http.Response) (*Ingredients, erro
 					if attr.Key == "class" {
 						if strings.Contains(attr.Val, "wprm-recipe-ingredient") {
 							ingredient, amount, unit := processWPRMIngredient(tokenizer)
-							ingredients[ingredient] = IngredientDetails{
+							ingredients[ingredient] = models.IngredientDetails{
 								Amount: amount,
 								Unit:   unit,
 							}
@@ -107,7 +100,7 @@ func processHTML(w http.ResponseWriter, resp *http.Response) (*Ingredients, erro
 	}
 }
 
-func getIngredients(w http.ResponseWriter, url string) (*Ingredients, error) {
+func getIngredients(w http.ResponseWriter, url string) (*models.Ingredients, error) {
 	// this only works for wprm recipe formats...
 
 	resp, err := http.Get(url)

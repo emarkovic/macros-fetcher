@@ -30,6 +30,7 @@ func main() {
 
 	http.HandleFunc("/", defaultMsg)
 	http.HandleFunc("/v1/ingredients", handlers.IngredientsHandler)
+	http.HandleFunc("/v1/macros", handlers.MacrosHandler)
 
 	fmt.Printf("server is listening at %s:%s...\n", host, port)
 	log.Fatal(http.ListenAndServe(addr, nil))
