@@ -129,7 +129,7 @@ func getIngredients(w http.ResponseWriter, url string) (*models.Ingredients, err
 }
 
 // IngredientsHandler handles getting the list of ingredients from a recipe url
-func IngredientsHandler(w http.ResponseWriter, r *http.Request) {
+func (ctx *Context) IngredientsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Access-Control-Allow-Origin", "*")
 
 	url := r.FormValue("url")
