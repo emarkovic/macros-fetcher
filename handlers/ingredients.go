@@ -2,15 +2,68 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 
 	"golang.org/x/net/html"
+	prose "gopkg.in/jdkato/prose.v2"
 
 	"github.com/macros-fetcher/models"
 )
+
+// process ingredient assumes that the caller found an li with a classname that contains "ingredient"
+// the ingredient text is then the text inside the open li tag
+func processIngredient(tokenizer *html.Tokenizer) (string, string, string) {
+	var ingredient, amount, unit string
+	for {
+		tokenType := tokenizer.Next()
+		switch tokenType {
+		case html.TextToken:
+			token := tokenizer.Token()
+			if strings.Contains(token.Data, "optional") {
+				// we dont care about optional ingredients at this point in time
+				return ingredient, amount, unit
+			}
+			fmt.Println("token = " + token.Data)
+			doc, _ := prose.NewDocument(token.Data)
+			prevTag := ""
+			for _, tok := range doc.Tokens() {
+				fmt.Println("tag:text = " + tok.Tag + " : " + tok.Text)
+				switch tok.Tag {
+				case "CD": //cardinal number
+					if amount == "" { // there might be more than 1 number token to represent amount, lets just take the 1st one
+						amount = tok.Text
+					}
+					break
+				case "NNS": // noun, plural
+					if unit == "" { // nns is usually for the unit, only set that once
+						unit = tok.Text
+					}
+					if prevTag == "NNP" || prevTag == "JJ" {
+						ingredient = ingredient + " " + strings.Trim(tok.Text, " ")
+					}
+
+					break
+				case "JJ", "VBP": // verbs are sometimes descriptive of the ingredient or the ingredient itself ex. "salsa"
+					ingredient = strings.Trim(tok.Text, " ") + " " + ingredient
+					break
+				case "NNP", "NN":
+					ingredient = ingredient + " " + strings.Trim(tok.Text, " ")
+				}
+				prevTag = tok.Tag
+			}
+			break
+		case html.StartTagToken:
+			token := tokenizer.Token()
+
+		case html.EndTagToken:
+			return ingredient, amount, unit
+		}
+	}
+}
 
 func processWPRMIngredient(tokenizer *html.Tokenizer) (string, string, string) {
 	/*
@@ -89,8 +142,18 @@ func processHTML(w http.ResponseWriter, resp *http.Response) (*models.Ingredient
 								Amount: amount,
 								Unit:   unit,
 							}
-						} else {
-							// todo: include other recipe formats.
+						} else if strings.Contains(attr.Val, "ingredient") {
+							ingredient, amount, unit := processIngredient(tokenizer)
+							if ingredient == "" && amount == "" && unit == "" {
+								continue
+							}
+							fmt.Println("ingredient = " + ingredient)
+							fmt.Println("amount = " + amount)
+							fmt.Println("unit = " + unit)
+							ingredients[ingredient] = models.IngredientDetails{
+								Amount: amount,
+								Unit:   unit,
+							}
 						}
 					}
 				}
